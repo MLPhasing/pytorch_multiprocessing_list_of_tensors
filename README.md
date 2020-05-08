@@ -7,7 +7,7 @@ In contrast, when using PyTorch tensors instead of numpy arrays, memory usage is
 
 For example compare the run like this:
 
-```python
+```bash
 python minimal.py --num_workers 10
 # Uses around 5GB of RAM
 python minimal.py --numpy --num_workers 10
