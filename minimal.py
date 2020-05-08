@@ -12,11 +12,11 @@ class FakeDataset(Dataset):
         print('Using numpy: {}'.format(use_numpy))
         if use_numpy:
             self.list = np.random.random((20000, 3, 100, 100)).astype(np.float32)
-            self.length = 90
+            self.length = 20000
             print("size in nbytes: {}".format(self.list.nbytes))
         else:
             self.list = torch.rand((20000, 3, 100, 100))
-            self.length = 180
+            self.length = 20000
             print("size in nbytes: {}".format(self.list.numel() * self.list.element_size()))
                 
     def __len__(self):
