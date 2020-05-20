@@ -22,7 +22,7 @@ class FakeDataset(Dataset):
 
 
 class LightningWrapper(pl.LightningModule):
-    def __init__(self, num_workers):
+    def __init__(self, num_workers, batch_size):
         super(LightningWrapper, self).__init__()
         self.num_workers = num_workers
         self.batch_size = batch_size
