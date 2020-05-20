@@ -31,12 +31,17 @@ class LightningWrapper(pl.LightningModule):
         super(LightningWrapper, self).__init__()
         self.use_numpy = use_numpy
         self.num_workers = num_workers
-        self.layer_1 = torch.nn.Linear(3 * 100 * 100, 10)
+        self.batch_size = batch_size
+        self.layer_1 = torch.nn.Conv2d(3, 20, kernel_size=3)
+        self.layer_2 = torch.nn.Conv2d(20, 50, kernel_size=3)
+        self.layer_3 = torch.nn.Conv2d(50, 5, kernel_size=3)
+        self.layer_4 = torch.nn.Linear(5 * 218 * 218, 10)
 
     def forward(self, x):
         batch_size, channels, width, height = x.size()
+        x = self.layer_3(self.layer_2(self.layer_1(x)))
         x = x.view(batch_size, -1)
-        x = self.layer_1(x)
+        x = self.layer_4(x)
         return torch.log_softmax(x, dim=1)
 
     def cross_entropy_loss(self, logits, labels):
@@ -52,8 +57,8 @@ class LightningWrapper(pl.LightningModule):
         self.training_set = FakeDataset(use_numpy=self.use_numpy)
 
     def train_dataloader(self):
-        print('Number of workers: {}'.format(self.num_workers))
-        return DataLoader(self.training_set, batch_size=32, num_workers=self.num_workers)
+        print('Number of workers: {}, batch_size: {}'.format(self.num_workers, self.batch_size))
+        return DataLoader(self.training_set, batch_size=self.batch_size, num_workers=self.num_workers)
     
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=1e-3)
@@ -63,8 +68,14 @@ class LightningWrapper(pl.LightningModule):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Reconstruct memory overflow')
     parser.add_argument('--numpy', action='store_true')
-    parser.add_argument('--num_workers', type=int, default='6')
+    parser.add_argument('--num_workers', type=int, default='10')
+    parser.add_argument('--batch_size', type=int, default='128')
+    parser.add_argument('--gpus', type=int, default='1')
+    parser.add_argument('--backend', type=str, default='ddp')
     args = parser.parse_args()
-    lightning_model = LightningWrapper(args.numpy, args.num_workers)
-    trainer = pl.Trainer(gpus=1, distributed_backend='ddp', num_sanity_val_steps=0)
+    print(args)
+    lightning_model = LightningWrapper(args.numpy, args.num_workers, args.batch_size)
+    trainer = pl.Trainer(gpus=args.gpus, distributed_backend=args.backend, num_sanity_val_steps=0, profiler=True, max_epochs=5)
+    start = time.time()
     trainer.fit(lightning_model)
+    print("Total training took {}s".format(time.time() - start))
