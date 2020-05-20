@@ -4,10 +4,13 @@ from torch.utils.data import Dataset
 from torch.nn import functional as F
 from torch.utils.data import DataLoader
 import argparse
+import time
 
 class FakeDataset(Dataset):
     def __init__(self):
+        start_data = time.time()
         self.list = torch.rand((20000, 3, 100, 100))
+        print("Data setup took: {}s".format(time.time() - start_data))
         self.length = 20000
         print("size in nbytes: {}".format(self.list.numel() * self.list.element_size()))
                 
