@@ -58,6 +58,13 @@ class LightningWrapper(pl.LightningModule):
         optimizer = torch.optim.Adam(self.parameters(), lr=1e-3)
         return optimizer
         
+class TimerCallback(pl.callbacks.base.Callback):
+    def on_train_start(self, trainer, pl_module):
+        print('Starting timer!')
+        self.start = time.time()
+
+    def on_train_end(self, trainer, pl_module):
+        print('Finished training after: {}s'.format(time.time() - self.start))
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Reconstruct memory overflow')
@@ -68,7 +75,6 @@ if __name__ == '__main__':
     args = parser.parse_args()
     print(args)
     lightning_model = LightningWrapper(args.num_workers, args.batch_size)
-    trainer = pl.Trainer(gpus=args.gpus, distributed_backend=args.backend, num_sanity_val_steps=0, profiler=True, max_epochs=5)
-    start = time.time()
+
+    trainer = pl.Trainer(gpus=args.gpus, distributed_backend=args.backend, num_sanity_val_steps=0, profiler=False, max_epochs=10, callbacks=[TimerCallback()])
     trainer.fit(lightning_model)
-    print("Total training took {}s".format(time.time() - start))
