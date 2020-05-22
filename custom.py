@@ -7,21 +7,8 @@ from torch.utils.data import Dataset
 import torch.nn as nn
 import torch.distributed as dist
 import time
+from minimal import FakeDataset
 
-class FakeDataset(Dataset):
-    def __init__(self):
-        start_data = time.time()
-        self.length = 20480
-        self.list = []
-        for i in range(self.length):
-            self.list.append(torch.rand((3, 224, 224)))
-        print("Data setup took: {}s".format(time.time() - start_data))
-
-    def __len__(self):
-        return self.length
-
-    def __getitem__(self, idx):
-        return self.list[idx], torch.tensor(0)
 
 class ConvNet(nn.Module):
     def __init__(self):
@@ -38,7 +25,7 @@ class ConvNet(nn.Module):
         x = self.layer_4(x)
         return torch.log_softmax(x, dim=1)
 
-def train(world_size, rank, num_epochs):
+def train(world_size, rank, num_epochs, use_lists):
     dist.init_process_group(
         backend='nccl',
         init_method='env://',
@@ -60,7 +47,7 @@ def train(world_size, rank, num_epochs):
 
     model = nn.parallel.DistributedDataParallel(model, device_ids=[gpu_index])
 
-    train_dataset = FakeDataset()
+    train_dataset = FakeDataset(use_lists)
     train_sampler = torch.utils.data.distributed.DistributedSampler(
         train_dataset,
         num_replicas=world_size,
@@ -98,8 +85,9 @@ if __name__ == '__main__':
     parser.add_argument('--world_size', default=1, type=int)
     parser.add_argument('--rank', default=0, type=int)
     parser.add_argument('--epochs', default=10, type=int)
+    parser.add_argument('--use_lists', type=bool, action='store_true', default=False)
 
     args = parser.parse_args()
     os.environ['MASTER_ADDR'] = '127.0.0.1'
     os.environ['MASTER_PORT'] = '8889'
-    train(args.world_size, args.rank, args.epochs)
+    train(args.world_size, args.rank, args.epochs, args.use_lists)

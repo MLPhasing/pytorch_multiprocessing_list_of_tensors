@@ -7,12 +7,15 @@ import argparse
 import time
 
 class FakeDataset(Dataset):
-    def __init__(self):
+    def __init__(self, use_lists=False):
         start_data = time.time()
-        self.list = []
         self.length = 20480
-        for i in range(self.length):
-            self.list.append(torch.rand((3, 224, 224)))
+        if use_lists:
+            self.list = []
+            for i in range(self.length):
+                self.list.append(torch.rand((3, 224, 224)))
+        else:
+            self.list = torch.rand((self.length, 3, 224, 224))
         print("Data setup took: {}s".format(time.time() - start_data))
                 
     def __len__(self):
@@ -23,10 +26,11 @@ class FakeDataset(Dataset):
 
 
 class LightningWrapper(pl.LightningModule):
-    def __init__(self, num_workers, batch_size):
+    def __init__(self, num_workers, batch_size, use_lists):
         super(LightningWrapper, self).__init__()
         self.num_workers = num_workers
         self.batch_size = batch_size
+        self.use_lists = use_lists
         self.layer_1 = torch.nn.Conv2d(3, 20, kernel_size=3)
         self.layer_2 = torch.nn.Conv2d(20, 50, kernel_size=3)
         self.layer_3 = torch.nn.Conv2d(50, 5, kernel_size=3)
@@ -49,7 +53,7 @@ class LightningWrapper(pl.LightningModule):
         return {'loss': loss}
     
     def prepare_data(self):
-        self.training_set = FakeDataset()
+        self.training_set = FakeDataset(self.use_lists)
 
     def train_dataloader(self):
         print('Number of workers: {}, batch_size: {}'.format(self.num_workers, self.batch_size))
@@ -73,9 +77,10 @@ if __name__ == '__main__':
     parser.add_argument('--batch_size', type=int, default='128')
     parser.add_argument('--gpus', type=int, default='1')
     parser.add_argument('--backend', type=str, default='ddp')
+    parser.add_argument('--use_lists', type=bool, action='store_true', default=False)
     args = parser.parse_args()
     print(args)
-    lightning_model = LightningWrapper(args.num_workers, args.batch_size)
+    lightning_model = LightningWrapper(args.num_workers, args.batch_size, args.use_lists)
 
     trainer = pl.Trainer(gpus=args.gpus, distributed_backend=args.backend, num_sanity_val_steps=0, profiler=False, max_epochs=10, callbacks=[TimerCallback()])
     trainer.fit(lightning_model)
