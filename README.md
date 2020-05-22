@@ -13,16 +13,16 @@ PyTorch Lightning is using PyTorch multiprocessing which uses shared memory. Whe
 Here are the speed results:
 
 ```bash
-python minimal.py --gpus 4                            # Does not use a list of tensors, but one big tensor. Training time: 105 seconds.
-python minimal.py --gpus 4 --use_list                 # Uses a list of tensors.                             Training time: 310 seconds, so 3x slower.
+python minimal.py --gpus 4                            # Training time: 105 seconds.
+python minimal.py --gpus 4 --use_list                 # Training time: 310 seconds, so 3x slower.
 
 # For the custom implementation, you need to start the run 4 times, once for each GPU:
-python custom.py --world_size 4 --rank 0              # Does not use a list of tensors, but one big tensor. Training time: 98  seconds.
+python custom.py --world_size 4 --rank 0              # Training time: 98  seconds.
 python custom.py --world_size 4 --rank 1
 python custom.py --world_size 4 --rank 2
 python custom.py --world_size 4 --rank 3
 
-python custom.py --world_size 4 --rank 0 --use_list   # Uses a list of tensors.                             Training time: 97  seconds.
+python custom.py --world_size 4 --rank 0 --use_list   # Training time: 97  seconds.
 python custom.py --world_size 4 --rank 1 --use_list
 python custom.py --world_size 4 --rank 2 --use_list
 python custom.py --world_size 4 --rank 3 --use_list
