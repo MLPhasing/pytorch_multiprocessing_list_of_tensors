@@ -53,7 +53,7 @@ class LightningWrapper(pl.LightningModule):
 
     def train_dataloader(self):
         print('Number of workers: {}, batch_size: {}'.format(self.num_workers, self.batch_size))
-        return DataLoader(self.training_set, batch_size=self.batch_size, num_workers=self.num_workers)
+        return DataLoader(self.training_set, batch_size=self.batch_size, num_workers=self.num_workers, pin_memory=True)
     
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=1e-3)
