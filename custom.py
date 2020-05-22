@@ -11,10 +11,11 @@ import time
 class FakeDataset(Dataset):
     def __init__(self):
         start_data = time.time()
-        self.list = torch.rand((20480, 3, 224, 224))
-        print("Data setup took: {}s".format(time.time() - start_data))
         self.length = 20480
-        print("size in nbytes: {}".format(self.list.numel() * self.list.element_size()))
+        self.list = []
+        for i in range(self.length):
+            self.list.append(torch.rand((3, 224, 224)))
+        print("Data setup took: {}s".format(time.time() - start_data))
 
     def __len__(self):
         return self.length
