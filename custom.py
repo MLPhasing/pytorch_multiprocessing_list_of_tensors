@@ -85,7 +85,7 @@ if __name__ == '__main__':
     parser.add_argument('--world_size', default=1, type=int)
     parser.add_argument('--rank', default=0, type=int)
     parser.add_argument('--epochs', default=10, type=int)
-    parser.add_argument('--use_lists', type=bool, action='store_true', default=False)
+    parser.add_argument('--use_lists', action='store_true', default=False)
 
     args = parser.parse_args()
     os.environ['MASTER_ADDR'] = '127.0.0.1'

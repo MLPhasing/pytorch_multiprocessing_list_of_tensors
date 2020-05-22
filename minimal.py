@@ -77,7 +77,7 @@ if __name__ == '__main__':
     parser.add_argument('--batch_size', type=int, default='128')
     parser.add_argument('--gpus', type=int, default='1')
     parser.add_argument('--backend', type=str, default='ddp')
-    parser.add_argument('--use_lists', type=bool, action='store_true', default=False)
+    parser.add_argument('--use_lists', action='store_true', default=False)
     args = parser.parse_args()
     print(args)
     lightning_model = LightningWrapper(args.num_workers, args.batch_size, args.use_lists)
