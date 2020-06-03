@@ -1,13 +1,29 @@
 import os
 import argparse
-import torchvision
-import torchvision.transforms as transforms
 import torch
-from torch.utils.data import Dataset
 import torch.nn as nn
 import torch.distributed as dist
 import time
-from minimal import FakeDataset
+from torch.utils.data import Dataset
+
+
+class FakeDataset(Dataset):
+    def __init__(self, use_lists=False):
+        start_data = time.time()
+        self.length = 2048
+        if use_lists:
+            self.list = []
+            for i in range(self.length):
+                self.list.append(torch.rand((3, 224, 224)))
+        else:
+            self.list = torch.rand((self.length, 3, 224, 224))
+        print("Data setup took: {}s".format(time.time() - start_data))
+
+    def __len__(self):
+        return self.length
+
+    def __getitem__(self, idx):
+        return self.list[idx], torch.tensor(0)
 
 
 class ConvNet(nn.Module):
@@ -25,7 +41,17 @@ class ConvNet(nn.Module):
         x = self.layer_4(x)
         return torch.log_softmax(x, dim=1)
 
-def train(world_size, rank, num_epochs, use_lists):
+
+def train(world_size, rank, num_epochs, use_lists, use_spawn):
+    train_dataset = FakeDataset(use_lists)
+    if use_spawn:
+        torch.multiprocessing.spawn(_train, nprocs=world_size, args=(world_size, num_epochs, train_dataset))
+    else:
+        _train(rank, world_size, num_epochs, use_lists)
+
+
+def _train(rank, world_size, num_epochs, train_dataset):
+
     dist.init_process_group(
         backend='nccl',
         init_method='env://',
@@ -47,7 +73,6 @@ def train(world_size, rank, num_epochs, use_lists):
 
     model = nn.parallel.DistributedDataParallel(model, device_ids=[gpu_index])
 
-    train_dataset = FakeDataset(use_lists)
     train_sampler = torch.utils.data.distributed.DistributedSampler(
         train_dataset,
         num_replicas=world_size,
@@ -64,7 +89,6 @@ def train(world_size, rank, num_epochs, use_lists):
     )
 
     start = time.time()
-    total_step = len(train_loader)
     for epoch in range(num_epochs):
         print("Epoch: {}".format(epoch))
         for i, (images, labels) in enumerate(train_loader):
@@ -82,12 +106,13 @@ def train(world_size, rank, num_epochs, use_lists):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--world_size', default=1, type=int)
+    parser.add_argument('--world_size', default=2, type=int)
     parser.add_argument('--rank', default=0, type=int)
     parser.add_argument('--epochs', default=10, type=int)
     parser.add_argument('--use_lists', action='store_true', default=False)
+    parser.add_argument('--use_spawn', action='store_true', default=False)
 
     args = parser.parse_args()
     os.environ['MASTER_ADDR'] = '127.0.0.1'
     os.environ['MASTER_PORT'] = '8889'
-    train(args.world_size, args.rank, args.epochs, args.use_lists)
+    train(args.world_size, args.rank, args.epochs, args.use_lists, args.use_spawn)
