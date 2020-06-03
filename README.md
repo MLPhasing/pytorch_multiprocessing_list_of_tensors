@@ -1,31 +1,23 @@
-# Speed analysis using distributed data parallel on 4 GPUs (single machine)
+# PyTorch multiprocessing spawn seems slow
 
-When using PyTorch lightning for multi GPU training instead of a self-built solution, I am encountering severe speed problems.
-I built this repo to replicate these issues as described here: https://github.com/PyTorchLightning/pytorch-lightning/issues/1925
+When using multiprocessing spawn, I get much longer training times - especially when using a list of tensors in my dataset.
 
-What I found is that this mostly depends on the data structure which is used in the Dataset. 
-We are caching larger amounts of data to memory and are using a list of tensors to do so as the tensors are all of different size (here in this example they have the same size for simplicity).
-As you can see here, using a list of tensors does not work at all when using the PyTorch Lightning solution as the speed impairments are severe.
-When using a self-built solution which just runs 4 independent processes and not using PyTorch multiprocessing, these impairments are not observed.
+I found that when using a list of tensors, a file pointer is created for each entry of the list, so you may need to increase your ulimit: `ulimit -n 3333`.
 
-PyTorch Lightning is using PyTorch multiprocessing which uses shared memory. When using lists, it opens a file memory pointer for each tensor entry, so you probably need to increase your file limits: `ulimit -n 99999`.
-
-Here are the speed results:
+Here are the speed results when running with 2 GPUs:
 
 ```bash
-python minimal.py --gpus 4                            # Training time: 105 seconds.
-python minimal.py --gpus 4 --use_list                 # Training time: 310 seconds, so 3x slower.
+python custom.py --use_spawn                         # Training time: 17 seconds
+python custom.py --use_spawn --use_lists             # Training time: 72 seconds (!)
 
-# For the custom implementation, you need to start the run 4 times, once for each GPU:
-python custom.py --world_size 4 --rank 0              # Training time: 98  seconds.
-python custom.py --world_size 4 --rank 1
-python custom.py --world_size 4 --rank 2
-python custom.py --world_size 4 --rank 3
+# Instead of using spawn, start each process independently:
+python custom.py --rank 0              # Training time: 14 seconds
+python custom.py --rank 1
 
-python custom.py --world_size 4 --rank 0 --use_list   # Training time: 97  seconds.
-python custom.py --world_size 4 --rank 1 --use_list
-python custom.py --world_size 4 --rank 2 --use_list
-python custom.py --world_size 4 --rank 3 --use_list
+python custom.py --rank 0 --use_list   # Training time: 14 seconds
+python custom.py --rank 1 --use_list
 ```
 
-As you can see, the custom implementation has a comparable runtime for both scenarios, but the list of tensors approach is not feasible in the multiprocessing setup.
+As you can see, spawn is slower, but especially much slower when using a list of tensors.
+
+This minimal example only has ~100 lines of code including the model and dataset.
