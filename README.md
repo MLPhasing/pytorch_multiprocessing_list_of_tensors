@@ -1,7 +1,7 @@
 # Speed analysis using distributed data parallel on 4 GPUs (single machine)
 
 When using PyTorch lightning for multi GPU training instead of a self-built solution, I am encountering severe speed problems.
-I built this repo to replicate these issues.
+I built this repo to replicate these issues as described here: https://github.com/PyTorchLightning/pytorch-lightning/issues/1925
 
 What I found is that this mostly depends on the data structure which is used in the Dataset. 
 We are caching larger amounts of data to memory and are using a list of tensors to do so as the tensors are all of different size (here in this example they have the same size for simplicity).
