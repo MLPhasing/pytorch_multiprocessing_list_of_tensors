@@ -47,7 +47,7 @@ def train(world_size, rank, num_epochs, use_lists, use_spawn):
     if use_spawn:
         torch.multiprocessing.spawn(_train, nprocs=world_size, args=(world_size, num_epochs, train_dataset))
     else:
-        _train(rank, world_size, num_epochs, use_lists)
+        _train(rank, world_size, num_epochs, train_dataset)
 
 
 def _train(rank, world_size, num_epochs, train_dataset):
