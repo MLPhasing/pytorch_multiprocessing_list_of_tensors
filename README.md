@@ -21,3 +21,5 @@ python custom.py --rank 1 --use_lists
 As you can see, spawn is slower, but especially much slower when using a list of tensors.
 
 This minimal example only has ~100 lines of code including the model and dataset.
+
+See related [PyTorch issue](https://github.com/pytorch/pytorch/issues/39443)
